@@ -1,0 +1,6 @@
+apiVersion: v2
+name: basic-login
+description: Basic Login Example (stub mode for early K8s rollout)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

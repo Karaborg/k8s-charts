@@ -1,0 +1,15 @@
+Stub mode aktif. DB hazır olduğunda values.yaml içindeki stubMode.enabled=false yapın.
+
+
+kubectl -n app-dev create secret docker-registry regcred \
+  --docker-server=https://index.docker.io/v1/ \
+  --docker-username=karaborg \
+  --docker-password='6-4bisz%NrxsFZB' \
+  --docker-email='furkancrt96@gmail.com'
+
+  helm upgrade --install bl ./basic-login -n app-dev \
+    --set image.repository=karaborg/basic-login \
+    --set image.tag=dev \
+    --set image.pullSecrets[0]=regcred \
+    --set stubMode.enabled=true \
+    --set ingress.enabled=false

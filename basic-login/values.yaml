@@ -1,0 +1,62 @@
+image:
+  repository: karaborg/basic-login
+  tag: "dev-2508102050"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+  nodePort: 32080
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: basic-login.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []  # ör: [{ secretName: basic-login-tls, hosts: ["basic-login.dev.local"] }]
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+env:
+  - name: PORT
+    value: "3000"
+
+  - name: MONGO_USER
+    value: "appuser"
+
+  - name: MONGO_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: mongo-mongodb
+        key: mongodb-passwords
+
+  - name: MONGO_DB
+    value: "appdb"
+
+  - name: MONGO_HOST
+    value: "mongo-mongodb.app-dev.svc.cluster.local"
+#  - name: MONGO_URI
+#    value: "mongodb://$(MONGO_USER):$(MONGO_PASSWORD)@$(MONGO_HOST):27017/$(MONGO_DB)?authSource=$(MONGO_DB)"
+
+# ---- ÖNEMLİ ----
+# Dev’de DB yokken Pod’un ayakta kalması için stub server kullan.
+# DB hazır olduğunda false yapıp gerçek entrypoint'i kullanırız.
+stubMode:
+  enabled: false
+
+probes:
+  readinessPath: /
+  livenessPath: /

@@ -1,7 +1,43 @@
-# Kubernetes + Helm ile Grafana & Prometheus Kurulumu (Kind üzerinde)
+# Kind + Helm + Ingress-NGINX + MongoDB + Prometheus + Grafana + Basic-Login
+Bu repo; Kind üzerinde Ingress-NGINX ile domain tabanlı erişim kurup, MongoDB (Bitnami), Prometheus, Grafana ve basic-login uygulamasını tamamen Helm values ile yönetmek için hazırlanmıştır.
+
+```
+Cluster: monitoring-cluster
+└─ Node (işçi makine): monitoring-cluster-control-plane   ← kind'da bu aslında bir Docker container
+   ├─ Namespace: ingress-nginx
+   │  ├─ Deployment: ingress-nginx-controller
+   │  │  └─ Pod: ingress-nginx-controller-xxxxx
+   │  │     └─ Container: controller
+   │  └─ Service: ingress-nginx-controller (ClusterIP)  ← Ingress trafik dağıtıcı
+   │
+   ├─ Namespace: monitoring
+   │  ├─ Deployment: gfn-grafana
+   │  │  └─ Pod: gfn-grafana-xxxxx
+   │  │     └─ Container: grafana
+   │  ├─ Service: gfn-grafana (ClusterIP :80)
+   │  └─ Ingress: gfn-grafana (Host: grafana.local) → Service:gfn-grafana → Pod
+   │
+   │  ├─ (Prometheus) prom-prometheus-server
+   │  │  └─ Pod: prom-prometheus-server-xxxxx
+   │  │     └─ Container: prometheus
+   │  ├─ Service: prom-prometheus-server (ClusterIP :80)
+   │  └─ Ingress: prom (Host: prometheus.local) → Service → Pod
+   │
+   └─ Namespace: app-dev
+      ├─ Deployment: bl-basic-login
+      │  └─ Pod: bl-basic-login-xxxxx
+      │     └─ Container: app (basic-login)
+      ├─ Service: bl-basic-login (ClusterIP :3000)
+      └─ Ingress: bl (Host: basic-login.local) → Service → Pod
+      
+      ├─ Deployment: mongo-mongodb
+      │  └─ Pod: mongo-mongodb-xxxxx
+      │     └─ Container: mongodb
+      └─ Service: mongo-mongodb (ClusterIP :27017)
+```
 
 ## Ortam Kurulumu
-- **MacOS** üzerinde çalışıldı.
+- Docker Desktop (veya eşdeğeri)
 - Kind, kubectl, helm kurulu olmalı.
 - Docker Desktop arka planda çalışır durumda olmalı.
 
@@ -10,30 +46,24 @@
 ## Cluster Oluşturma
 Port-forward kullanmadan erişebilmek için `extraPortMappings` ile kind config oluşturduk.
 
-**kind-config.yaml**
-```yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  extraPortMappings:
-    - containerPort: 30080
-      hostPort: 30080
-      protocol: TCP
-    - containerPort: 30476
-      hostPort: 30476
-      protocol: TCP
-```
-
-## Cluster’ı başlattık
+## Cluster’ı Başlatma
 ```bash
 kind create cluster --name monitoring-cluster --config kind-config.yaml
+```
+
+## Ingress-NGINX Kurulumu
+```bash
+helm upgrade --install ingress-nginx ./vendor/ingress-nginx \
+  -n ingress-nginx --create-namespace \
+  -f ingress-nginx-values-kind.yaml
+
+kubectl -n ingress-nginx wait --for=condition=available deploy/ingress-nginx-controller --timeout=120s
 ```
 
 ## Namespace’leri Oluşturma
 ```bash
 kubectl create namespace monitoring
-kubectl create namespace grafana
+kubectl create ns app-dev
 ```
 
 ## Helm Chart’ları Lokal’e İndirme
@@ -44,50 +74,157 @@ helm pull prometheus-community/prometheus --untar
 Bu sayede chart yapısını (Chart.yaml, values.yaml, templates/) görebildik.
 
 ## Prometheus Kurulumu
-NodePort ayarıyla kurulum:
 ```bash
-helm upgrade --install prom ./prometheus -n monitoring \
-  --set server.service.type=NodePort \
-  --set server.service.nodePort=30476 \
-  --set server.service.servicePort=80
+helm upgrade --install prom ./prometheus -n monitoring
 ```
 Erişim:
-http://localhost:30476
+http://prometheus.local/
 
 ## Grafana Kurulumu
-Zsh ile uyumlu tek satırlık komut:
 ```bash
-helm upgrade --install gfn ./grafana -n grafana \
-  --set adminUser=admin \
-  --set adminPassword=admin123 \
-  --set service.type=NodePort \
-  --set service.nodePort=30080 \
-  --set 'datasources.datasources\.yaml.apiVersion'=1 \
-  --set 'datasources.datasources\.yaml.datasources[0].name'=Prometheus \
-  --set 'datasources.datasources\.yaml.datasources[0].type'=prometheus \
-  --set 'datasources.datasources\.yaml.datasources[0].url'=http://prom-prometheus-server.monitoring.svc.cluster.local \
-  --set 'datasources.datasources\.yaml.datasources[0].access'=proxy \
-  --set 'datasources.datasources\.yaml.datasources[0].isDefault'=true
+helm upgrade --install gfn ./grafana -n monitoring
 ```
 Erişim:
-http://localhost:30080 (admin / admin123)
+http://grafana.local/ (admin / admin123)
+
+## MongoDB Kurulumu
+```bash
+helm upgrade --install mongo ./mongodb -n app-dev
+```
+
+## Web App Kurulumu
+```bash
+helm upgrade --install bl ./basic-login -n app-dev
+```
+Erişim:
+http://basic-login.local/
 
 ## Doğrulama
 Pod ve servis durumlarını kontrol ettik:
 ```bash
 kubectl -n monitoring get pods,svc
-kubectl -n grafana get pods,svc
 ```
-Grafana arayüzünden:
-
-Data Sources → Prometheus → Save & Test
-
-Dashboards → Import → 1860 (Node Exporter Full)
 
 ## Öğrendiklerimiz
 - Helm Chart yapısını (values.yaml, templates/) lokal indirerek inceledik.
-- NodePort sadece 30000–32767 arasında olabilir; kind ile extraPortMappings sayesinde localhost’ta sabit portlardan eriştik.
-- Zsh ile --set kullanırken özel karakterli key’leri tek tırnak içine almak gerekiyor.
-- Prometheus ve Grafana’yı ayrı namespace’lere kurmak yönetimi kolaylaştırıyor.
 - helm get values ve helm get manifest ile Kubernetes’e uygulanan konfigürasyonu görebiliyoruz.
 
+## Cluster Oluşturma / Bağlanma
+```bash
+# kind ile cluster oluştur
+kind create cluster --name monitoring-cluster --config kind-config.yaml
+
+# cluster’ı sil
+kind delete cluster --name monitoring-cluster
+
+# mevcut context ve cluster bilgisi
+kubectl config current-context
+kubectl config get-contexts
+kubectl cluster-info
+kubectl version --short
+```
+
+## Temel Keşif
+```bash
+# node ve namespace’ler
+kubectl get nodes -o wide
+kubectl get ns
+
+# bir ns içindeki kaynaklar (kısa adlarla)
+kubectl get deploy,sts,ds,svc,pod,cm,secret,ing -n monitoring
+kubectl get all -n monitoring
+
+# sürekli izle
+kubectl get pods -n monitoring -w
+```
+
+## Sağlık Kontrolü (Pod/Deployment)
+```bash
+# pod listesi, geniş görünüm + hazır olma
+kubectl get pods -n monitoring -o wide
+
+# pod detay (event’ler son kısımda)
+kubectl describe pod -n monitoring <pod-adı>
+
+# deployment durumu / rollout
+kubectl rollout status deploy/gfn-grafana -n monitoring
+kubectl rollout history deploy/gfn-grafana -n monitoring
+kubectl rollout undo deploy/gfn-grafana -n monitoring   # geri al
+```
+
+## Log, exec, port-forward
+```bash
+# son 200 log satırı
+kubectl logs -n monitoring <pod> --tail=200
+
+# container seç (çokluysa)
+kubectl logs -n monitoring <pod> -c <container>
+
+# takip ederek izle
+kubectl logs -f -n monitoring <pod>
+
+# pod içine gir
+kubectl exec -it -n monitoring <pod> -- sh
+
+# yerel porta bağla (geçici erişim)
+kubectl -n monitoring port-forward svc/gfn-grafana 3000:80
+```
+
+ ## Uygulama (apply/delete/patch)
+```bash
+# yaml uygula / sil
+kubectl apply -f my.yaml
+kubectl delete -f my.yaml
+
+# tek kaynak sil
+kubectl delete pod -n monitoring <pod>
+kubectl delete svc -n monitoring <svc>
+
+# hızlı json patch (ör: Service type’ını değiştir)
+kubectl patch svc -n monitoring gfn-grafana -p '{"spec":{"type":"NodePort"}}'
+```
+
+## Filtreleme, etiket, seçim
+```bash
+# label ekle/çıkar
+kubectl label ns grafana purpose=grafana --overwrite
+kubectl label ns grafana purpose-
+
+# selector ile listele
+kubectl get pods -n monitoring -l app=prometheus
+
+# sadece adları yazdır
+kubectl get pods -n monitoring -o name
+```
+
+JSONPath / Yararlı Çıktılar
+```bash
+# servis NodePort değerini çek
+kubectl get svc -n monitoring prom-prometheus-server \
+  -o jsonpath='{.spec.ports[0].nodePort}'; echo
+
+# secret içeriğini çöz
+kubectl get secret -n monitoring gfn-grafana \
+  -o go-template='{{ index .data "admin-password" | base64decode }}'; echo
+```
+
+## Dokümantasyon ve API keşfi
+```bash
+kubectl explain deployment.spec.template.spec.containers --recursive | less
+kubectl api-resources     
+kubectl api-versions
+```
+
+## Kaynak kullanımı (metrics-server varsa)
+```bash
+kubectl top nodes
+kubectl top pods -n monitoring
+```
+
+## Hızlı Sağlık Checklist’i
+- kubectl get nodes → Ready?
+- kubectl get pods -n <ns> → Running / READY 1/1?
+- kubectl describe pod → son event’lerde hata var mı?
+- kubectl logs <pod> → crash/hata mesajı?
+- kubectl get svc → doğru port/targetPort?
+- (Gerekirse) port-forward ile canlı test.
