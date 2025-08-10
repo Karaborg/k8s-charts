@@ -1,0 +1,44 @@
+image:
+  repository: karaborg/basic-login
+  tag: "dev"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+replicaCount: 1
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 3000
+  nodePort: 32080
+
+ingress:
+  enabled: false
+  className: nginx
+  hosts:
+    - host: basic-login.dev.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []  # ör: [{ secretName: basic-login-tls, hosts: ["basic-login.dev.local"] }]
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+env:
+  PORT: "3000"
+
+# ---- ÖNEMLİ ----
+# Dev’de DB yokken Pod’un ayakta kalması için stub server kullan.
+# DB hazır olduğunda false yapıp gerçek entrypoint'i kullanırız.
+stubMode:
+  enabled: false
+
+probes:
+  readinessPath: /
+  livenessPath: /
