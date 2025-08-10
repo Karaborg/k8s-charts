@@ -2,9 +2,7 @@
 kind create cluster --name monitoring-cluster --config kind-config.yaml
 
 # Ingress-NGINX
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+helm upgrade --install ingress-nginx ./vendor/ingress-nginx \
   -n ingress-nginx --create-namespace \
   -f ingress-nginx-values-kind.yaml
 
