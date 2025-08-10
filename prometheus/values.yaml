@@ -371,9 +371,9 @@ server:
   ingress:
     ## If true, Prometheus server Ingress will be created
     ##
-    enabled: false
+    enabled: true
 
-    ingressClassName: ""
+    ingressClassName: "nginx"
 
     ## Prometheus server Ingress annotations
     ##
@@ -391,8 +391,8 @@ server:
     ## Prometheus server Ingress hostnames with optional path (passed through tpl)
     ## Must be provided if Ingress is enabled
     ##
-    hosts: []
-    #   - prometheus.domain.com
+    hosts:
+       - prometheus.local
     #   - domain.com/prometheus
 
     path: /
@@ -764,7 +764,7 @@ server:
     loadBalancerSourceRanges: []
     servicePort: 80
     sessionAffinity: None
-    type: NodePort
+    type: ClusterIP
     nodePort: 30476
     ## externalTrafficPolicy is applicable to service with externally-facing addresses (NodePorts, ExternalIPs, and LoadBalancer IPs)
     externalTrafficPolicy: ""

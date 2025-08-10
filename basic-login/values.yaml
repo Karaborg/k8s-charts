@@ -7,16 +7,16 @@ image:
 replicaCount: 1
 
 service:
-  type: NodePort
+  type: ClusterIP
   port: 80
   targetPort: 3000
   nodePort: 32080
 
 ingress:
-  enabled: false
+  enabled: true
   className: nginx
   hosts:
-    - host: basic-login.dev.local
+    - host: basic-login.local
       paths:
         - path: /
           pathType: Prefix

@@ -1,8 +1,8 @@
 # Kubernetes + Helm ile Grafana & Prometheus Kurulumu (Kind üzerinde)
-Bu doküman, Kind üzerinde Helm Chart kullanarak Grafana ve Prometheus kurulumunu adım adım öğrenmek için hazırlandı. Amaç hem Helm chart yapısını anlamak hem de Kubernetes’te temel yönetim komutlarını pratik etmek.
+Bu repo; Kind üzerinde Ingress-NGINX kullanarak Prometheus, Grafana ve örnek “basic-login” uygulamasını domain üzerinden çalıştırmak için hazırlanmış bir pratik setidir.
 
 ## Ortam Kurulumu
-- **MacOS** üzerinde çalışıldı.
+- Docker Desktop (veya eşdeğeri)
 - Kind, kubectl, helm kurulu olmalı.
 - Docker Desktop arka planda çalışır durumda olmalı.
 
@@ -10,21 +10,6 @@ Bu doküman, Kind üzerinde Helm Chart kullanarak Grafana ve Prometheus kurulumu
 
 ## Cluster Oluşturma
 Port-forward kullanmadan erişebilmek için `extraPortMappings` ile kind config oluşturduk.
-
-**kind-config.yaml**
-```yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-- role: control-plane
-  extraPortMappings:
-    - containerPort: 30080
-      hostPort: 30080
-      protocol: TCP
-    - containerPort: 30476
-      hostPort: 30476
-      protocol: TCP
-```
 
 ## Cluster’ı başlattık
 ```bash
@@ -34,6 +19,7 @@ kind create cluster --name monitoring-cluster --config kind-config.yaml
 ## Namespace’leri Oluşturma
 ```bash
 kubectl create namespace monitoring
+kubectl create ns app-dev
 ```
 
 ## Helm Chart’ları Lokal’e İndirme
@@ -44,34 +30,34 @@ helm pull prometheus-community/prometheus --untar
 Bu sayede chart yapısını (Chart.yaml, values.yaml, templates/) görebildik.
 
 ## Prometheus Kurulumu
-NodePort ayarıyla kurulum:
 ```bash
 helm upgrade --install prom ./prometheus -n monitoring
 ```
 Erişim:
-http://localhost:30476
+http://prometheus.local/
 
 ## Grafana Kurulumu
-Zsh ile uyumlu tek satırlık komut:
 ```bash
 helm upgrade --install gfn ./grafana -n monitoring
 ```
 Erişim:
-http://localhost:30080 (admin / admin123)
+http://grafana.local/ (admin / admin123)
+
+## Web App Kurulumu
+```bash
+helm upgrade --install bl ./basic-login -n app-dev
+```
+Erişim:
+http://grafana.local/ (admin / admin123)
 
 ## Doğrulama
 Pod ve servis durumlarını kontrol ettik:
 ```bash
 kubectl -n monitoring get pods,svc
 ```
-Grafana arayüzünden:
-- Data Sources → Prometheus → Save & Test
-- Dashboards → Import → 1860 (Node Exporter Full)
 
 ## Öğrendiklerimiz
 - Helm Chart yapısını (values.yaml, templates/) lokal indirerek inceledik.
-- NodePort sadece 30000–32767 arasında olabilir; kind ile extraPortMappings sayesinde localhost’ta sabit portlardan eriştik.
-- Zsh ile --set kullanırken özel karakterli key’leri tek tırnak içine almak gerekiyor.
 - helm get values ve helm get manifest ile Kubernetes’e uygulanan konfigürasyonu görebiliyoruz.
 
 ## Cluster Oluşturma / Bağlanma
@@ -97,7 +83,7 @@ kubectl get ns
 
 # bir ns içindeki kaynaklar (kısa adlarla)
 kubectl get deploy,sts,ds,svc,pod,cm,secret,ing -n monitoring
-kubectl get all -n monitoring            # (öğrenme için tamam, prod’da pek kullanılmaz)
+kubectl get all -n monitoring
 
 # sürekli izle
 kubectl get pods -n monitoring -w
@@ -176,7 +162,7 @@ kubectl get secret -n monitoring gfn-grafana \
 ## Dokümantasyon ve API keşfi
 ```bash
 kubectl explain deployment.spec.template.spec.containers --recursive | less
-kubectl api-resources        # desteklenen kaynaklar
+kubectl api-resources     
 kubectl api-versions
 ```
 
