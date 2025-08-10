@@ -1,6 +1,37 @@
 # Kubernetes + Helm ile Grafana & Prometheus Kurulumu (Kind üzerinde)
 Bu repo; Kind üzerinde Ingress-NGINX kullanarak Prometheus, Grafana ve örnek “basic-login” uygulamasını domain üzerinden çalıştırmak için hazırlanmış bir pratik setidir.
 
+```
+Cluster: monitoring-cluster
+└─ Node (işçi makine): monitoring-cluster-control-plane   ← kind'da bu aslında bir Docker container
+   ├─ Namespace: ingress-nginx
+   │  ├─ Deployment: ingress-nginx-controller
+   │  │  └─ Pod: ingress-nginx-controller-xxxxx
+   │  │     └─ Container: controller
+   │  └─ Service: ingress-nginx-controller (ClusterIP)  ← Ingress trafik dağıtıcı
+   │
+   ├─ Namespace: monitoring
+   │  ├─ Deployment: gfn-grafana
+   │  │  └─ Pod: gfn-grafana-xxxxx
+   │  │     └─ Container: grafana
+   │  ├─ Service: gfn-grafana (ClusterIP :80)
+   │  └─ Ingress: gfn-grafana (Host: grafana.local / grafana.localtest.me) → Service:gfn-grafana → Pod
+   │
+   │  ├─ (Prometheus) prom-prometheus-server
+   │  │  └─ Pod: prom-prometheus-server-xxxxx
+   │  │     └─ Container: prometheus
+   │  ├─ Service: prom-prometheus-server (ClusterIP :80)
+   │  └─ Ingress: prom (Host: prometheus.local / .localtest.me) → Service → Pod
+   │
+   └─ Namespace: app-dev
+      ├─ Deployment: bl-basic-login
+      │  └─ Pod: bl-basic-login-xxxxx
+      │     └─ Container: app (basic-login)
+      ├─ Service: bl-basic-login (ClusterIP :3000)
+      └─ Ingress: bl (Host: basic-login.local / .localtest.me) → Service → Pod
+
+```
+
 ## Ortam Kurulumu
 - Docker Desktop (veya eşdeğeri)
 - Kind, kubectl, helm kurulu olmalı.
@@ -11,7 +42,7 @@ Bu repo; Kind üzerinde Ingress-NGINX kullanarak Prometheus, Grafana ve örnek �
 ## Cluster Oluşturma
 Port-forward kullanmadan erişebilmek için `extraPortMappings` ile kind config oluşturduk.
 
-## Cluster’ı başlattık
+## Cluster’ı Başlatma
 ```bash
 kind create cluster --name monitoring-cluster --config kind-config.yaml
 ```
@@ -48,7 +79,7 @@ http://grafana.local/ (admin / admin123)
 helm upgrade --install bl ./basic-login -n app-dev
 ```
 Erişim:
-http://grafana.local/ (admin / admin123)
+http://basic-login.local/
 
 ## Doğrulama
 Pod ve servis durumlarını kontrol ettik:
