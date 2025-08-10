@@ -15,20 +15,20 @@ Cluster: monitoring-cluster
    │  │  └─ Pod: gfn-grafana-xxxxx
    │  │     └─ Container: grafana
    │  ├─ Service: gfn-grafana (ClusterIP :80)
-   │  └─ Ingress: gfn-grafana (Host: grafana.local / grafana.localtest.me) → Service:gfn-grafana → Pod
+   │  └─ Ingress: gfn-grafana (Host: grafana.local) → Service:gfn-grafana → Pod
    │
    │  ├─ (Prometheus) prom-prometheus-server
    │  │  └─ Pod: prom-prometheus-server-xxxxx
    │  │     └─ Container: prometheus
    │  ├─ Service: prom-prometheus-server (ClusterIP :80)
-   │  └─ Ingress: prom (Host: prometheus.local / .localtest.me) → Service → Pod
+   │  └─ Ingress: prom (Host: prometheus.local) → Service → Pod
    │
    └─ Namespace: app-dev
       ├─ Deployment: bl-basic-login
       │  └─ Pod: bl-basic-login-xxxxx
       │     └─ Container: app (basic-login)
       ├─ Service: bl-basic-login (ClusterIP :3000)
-      └─ Ingress: bl (Host: basic-login.local / .localtest.me) → Service → Pod
+      └─ Ingress: bl (Host: basic-login.local) → Service → Pod
 
 ```
 
