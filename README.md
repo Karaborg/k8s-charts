@@ -1,5 +1,5 @@
-# Kubernetes + Helm ile Grafana & Prometheus Kurulumu (Kind üzerinde)
-Bu repo; Kind üzerinde Ingress-NGINX kullanarak Prometheus, Grafana ve örnek “basic-login” uygulamasını domain üzerinden çalıştırmak için hazırlanmış bir pratik setidir.
+# Kind + Helm + Ingress-NGINX + MongoDB + Prometheus + Grafana + Basic-Login
+Bu repo; Kind üzerinde Ingress-NGINX ile domain tabanlı erişim kurup, MongoDB (Bitnami), Prometheus, Grafana ve basic-login uygulamasını tamamen Helm values ile yönetmek için hazırlanmıştır.
 
 ```
 Cluster: monitoring-cluster
@@ -29,7 +29,11 @@ Cluster: monitoring-cluster
       │     └─ Container: app (basic-login)
       ├─ Service: bl-basic-login (ClusterIP :3000)
       └─ Ingress: bl (Host: basic-login.local) → Service → Pod
-
+      
+      ├─ Deployment: mongo-mongodb
+      │  └─ Pod: mongo-mongodb-xxxxx
+      │     └─ Container: mongodb
+      └─ Service: mongo-mongodb (ClusterIP :27017)
 ```
 
 ## Ortam Kurulumu
@@ -45,6 +49,15 @@ Port-forward kullanmadan erişebilmek için `extraPortMappings` ile kind config 
 ## Cluster’ı Başlatma
 ```bash
 kind create cluster --name monitoring-cluster --config kind-config.yaml
+```
+
+## Ingress-NGINX Kurulumu
+```bash
+helm upgrade --install ingress-nginx ./vendor/ingress-nginx \
+  -n ingress-nginx --create-namespace \
+  -f ingress-nginx-values-kind.yaml
+
+kubectl -n ingress-nginx wait --for=condition=available deploy/ingress-nginx-controller --timeout=120s
 ```
 
 ## Namespace’leri Oluşturma
@@ -73,6 +86,11 @@ helm upgrade --install gfn ./grafana -n monitoring
 ```
 Erişim:
 http://grafana.local/ (admin / admin123)
+
+## MongoDB Kurulumu
+```bash
+helm upgrade --install mongo ./mongodb -n app-dev
+```
 
 ## Web App Kurulumu
 ```bash
