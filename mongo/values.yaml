@@ -1,0 +1,33 @@
+nameOverride: "mongo-mongodb"
+fullnameOverride: "mongo-mongodb"
+
+image:
+  repository: mongo
+  tag: "8.0"
+  pullPolicy: IfNotPresent
+
+auth:
+  rootUser: "root"
+  rootPassword: "password123"   # ArgoCD/Helm'de secret values ile override edebilirsin
+  database: "admin"             # root kullanıcı admin DB’de
+
+service:
+  type: ClusterIP
+  port: 27017
+
+persistence:
+  enabled: true
+  size: 8Gi
+  storageClass: ""              # boş bırak: cluster default'u kullanır; gerekirse ismini yaz
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-mongodb
+  labels:
+    {{- include "mongo-mongodb.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-mongodb
+  template:
+    metadata:
+      labels:
+        app: mongo-mongodb
+        {{- include "mongo-mongodb.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: mongo-mongodb
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 27017
+              name: mongo-mongodb
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-auth
+                  key: MONGO_INITDB_ROOT_USERNAME
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-auth
+                  key: MONGO_INITDB_ROOT_PASSWORD
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: mongo-storage
+              mountPath: /data/db
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: mongo-storage
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: mongo-pvc
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: init-script
+          configMap:
+            name: mongo-init-script
+            defaultMode: 0444
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

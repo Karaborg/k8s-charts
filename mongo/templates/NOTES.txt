@@ -1,0 +1,8 @@
+Mongo service: mongo-mongodb
+DNS inside cluster: mongo-mongodb.{{ .Release.Namespace }}.svc.cluster.local:27017
+
+Root user: {{ .Values.auth.rootUser }}
+Database : {{ .Values.auth.database }}
+
+Example URI:
+  mongodb://{{ .Values.auth.rootUser }}:*****@mongo-mongodb:27017/{{ .Values.auth.database }}?authSource={{ .Values.auth.database }}
