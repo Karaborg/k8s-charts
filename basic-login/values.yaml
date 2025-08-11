@@ -33,23 +33,12 @@ resources:
 env:
   - name: PORT
     value: "3000"
-
-  - name: MONGO_USER
-    value: "appuser"
-
-  - name: MONGO_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: mongo-mongodb
-        key: mongodb-passwords
-
-  - name: MONGO_DB
-    value: "appdb"
-
-  - name: MONGO_HOST
-    value: "mongo-mongodb.app-dev.svc.cluster.local"
-#  - name: MONGO_URI
-#    value: "mongodb://$(MONGO_USER):$(MONGO_PASSWORD)@$(MONGO_HOST):27017/$(MONGO_DB)?authSource=$(MONGO_DB)"
+  - name: MONGO_DB_USERNAME
+    value: "root"
+  - name: MONGO_DB_PASSWORD
+    value: "password123"
+  - name: MONGO_ADDRESS
+    value: "mongo-mongodb"
 
 # ---- ÖNEMLİ ----
 # Dev’de DB yokken Pod’un ayakta kalması için stub server kullan.

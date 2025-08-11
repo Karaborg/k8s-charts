@@ -89,7 +89,7 @@ http://grafana.local/ (admin / admin123)
 
 ## MongoDB Kurulumu
 ```bash
-helm upgrade --install mongo ./mongodb -n app-dev
+helm upgrade --install mongo-mongodb ./mongodb -n app-dev
 ```
 
 ## Web App Kurulumu
